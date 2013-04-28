@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="chrome=1" />
+<title>Audio Playlist</title>
+<style>
+html, body {
+height: 100%;
+font: 12px normal Arial, sans-serif;
+}
+body {
+
+-webkit-box-orient: horizontal;
+-webkit-box-pack:  center;
+-webkit-box-align: center;
+background: rgba(255,255,127,1);
+
+}
+body.playing {
+vertical-align: top;
+background: -webkit-gradient(radial, 50% 50%, 0, 50% 50%, 500, from(white), to(rgba(255,255,127,1))) no-repeat;
+}
+h1, h2, h3 {
+margin: 0;
+padding: 0;
+}
+ul, li {
+list-style: none;
+margin: 0;
+padding: 0;
+}
+#container {
+
+margin:1%;
+background: #eee;
+border: 8px solid #000333;
+display: -webkit-box;
+-webkit-box-orient: vertical;
+-webkit-box-pack: center;
+-webkit-box-align: center;
+padding: 25px;
+-webkit-box-shadow: 0 0 15px #333 inset;
+border-radius: 10px;
+
+}
+#myfile,
+#playlist,
+audio {
+border: 1px solid #ccc;
+padding: 10px;
+border-radius: 10px;
+min-width: 400px;
+max-width: 800px;
+margin:1%;
+background-color: white;
+
+}
+button {
+background: -webkit-gradient(linear, 0% 40%, 0% 70%, from(#F9F9F9), to(#E3E3E3));
+border: 1px solid #ccc;
+border-radius: 3px;
+margin: 0 8px 0 0;
+color: black;
+padding: 7px 8px;
+outline: none;
+white-space: nowrap;
+vertical-align: middle;
+-webkit-user-select:none;
+user-select: none;
+cursor: pointer;
+}
+button:hover {
+border: 1px solid #939393;
+}
+button:active {
+background: -webkit-gradient(linear, 0% 40%, 0% 70%, from(#E3E3E3), to(#F9F9F9));
+}
+</style>
+
+
+    <script src="http://localhost/alien/lib/js/jquery-latest.js"></script>
+
+    <script type="text/javascript">
+        // retrieve database name from url (for example "tasks")
+        var DATABASE = "/" + window.location.href.split("/")[3];
+        var session = {
+            "search": "",
+            clean:[],
+            tasks: []
+        };
+
+
+        function cleaner(clean) {
+
+          var aj = $.ajax({
+                         url:"http://quantup.com/tiny/concept2.php?img="+ clean.toString(),
+                         async: false,
+                         cache:true,
+                         crossDomain:true,
+                         type: "GET",
+                         timeout: 10000,
+                         success: function (data) {
+                         console.log(data);
+                            $.each(data.split("\n"), function(i,val) {
+                                                     console.log(val);
+                              session.tasks.push(val);
+
+                              clean = "http://"+val;
+
+                            });
+                        }
+                    });
+                              return clean;
+        }
+        function getTasks() {
+            var desc = prompt("Search audio");
+            if (desc) {
+            session.search = desc;
+            var q = '?start_key="'+session.search+'"&end_key="'+session.search+'z"';
+            //'?start_key=["Space"]&end_key=["Spacez"]&reduce=false&include_docs=true&limit=200';
+            //'
+
+            $.ajax({
+                url: "/secret" + "/_design/base/_view/audio"+q,
+                success: function (data){
+                    var view = JSON.parse(data);
+
+                     $.each(view.rows, function (idx, item) {
+//                    $(item).each( function (index, itm) {
+
+                        session.tasks.push(item);
+  //                  });
+                    });
+                    displayTasks(session);
+                }
+             });
+
+             }
+        }
+
+        function displayTasks() {
+
+            var html = "<table>";
+            $(session.tasks).each( function (index, task) {
+                var edit = "<input type='button' value='Edit' " +
+                    "onclick='editTask(" + JSON.stringify(task) + ")' />";
+
+                html += "<tr>";
+                html += "<td>" + task.id + "<br><ul>";
+          $(task.value).each( function (i, t) {
+
+                html += '<li><a href="javascript:void(0);" data-src="'+t+'" n="" onclick="playlist.play(this)">'+t+'</a></li>';
+                });
+                html += "</ul></td></tr>";
+            });
+            html += "</table>";
+
+
+            $('#playlist').append(html);
+        }
+
+        function addTask() {
+            var desc = prompt("Enter a task description");
+            if (desc) {
+                var task = {
+                    "task": desc
+                };
+
+                $.ajax({
+                    type: "POST",
+                    url: DATABASE,
+                    contentType: "application/json",
+                    data: JSON.stringify(task),
+                    success: function () {
+                        getTasks();
+                    }
+                 });
+            }
+        }
+
+        function editTask(task) {
+            var desc = prompt("New task description", task.task);
+            if (desc) {
+                task.task = desc;
+
+                $.ajax({
+                    type: "PUT",
+                    url: DATABASE + "/" + task._id,
+                    contentType: "application/json",
+                    data: JSON.stringify(task),
+                    success: function () {
+                        getTasks();
+                    }
+                 });
+            }
+        }
+
+        function deleteTask(task) {
+
+            var doit = confirm("Do you really want to delete the task '" +
+                task.task + "'?");
+            if (doit) {
+                $.ajax({
+                    type: "DELETE",
+                    url: DATABASE + "/" + task._id + "?rev=" + task._rev,
+                    success: function () {
+                        getTasks();
+                    }
+                 });
+            }
+        }
+
+        // create view (will fail if already existing)
+        function createView() {
+            var view = {
+               "language": "javascript",
+               "views": {
+                   "tasks": {
+                       "map": "function(doc) {if (doc.task) {emit(doc.task, doc);}}"
+                   }
+               }
+            }
+            $.ajax({
+                type: "PUT",
+                url: DATABASE + "/_design/tasks",
+                contentType: "application/json",
+                data: JSON.stringify(view)
+             });
+        }
+    </script>
+</head>
+
+<body style="background:#F0F1F8;">
+  <div id="container">
+    <audio id="player" controls></audio>
+
+    <p>
+
+      <button onclick=" getTasks();">Load media</button>
+      <button onclick="playlist.load('http://quantup.com/list.php');">Load default playlist</button>
+      <button onclick="playlist.clear();">Clear playlist</button>
+    </p>
+    <div class="small" id="playlist"></div>
+    <div id="myfileContainer"><input type="file" id="myfile" /></div>
+  </div>
+<script>
+function PlayList(selector, audio) {
+  var playlistDOM_ = document.querySelector(selector);
+  var plist_ = [];
+  var self_ = this;
+
+  this.audio = document.querySelector(audio);
+
+  this.load = function(url) {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function(e) {
+      self_.parse(e.target.responseText);
+      self_.render();
+    };
+    xhr.open('GET', url, true);
+    xhr.send();
+  }
+
+  this.parse = function(fileText) {
+    this.clear();
+
+    var lines = fileText.split('\n');
+    lines.forEach(function(line) {
+      // http://en.wikipedia.org/wiki/PLS_(file_format)
+      var src = line.match(/^File\d{0,2}=(.*)$/);
+      var title = line.match(/^Title\d{0,2}=(.*)$/);
+
+      if (src && src[1]) {
+        plist_.push({'src': src[1]});
+      }
+      if (title && title[1]) {
+        plist_[plist_.length - 1].title = title[1];
+      }
+    });
+
+    this.save(plist_);
+
+    return plist_;
+  };
+
+  this.save = function(list) {
+    plist_ = list;
+    window.localStorage.setItem('plist', JSON.stringify(list));
+  }
+
+  this.recall = function() {
+    plist_ = window.localStorage.getItem('plist');
+    return plist_ ? JSON.parse(plist_) : [];
+  }
+
+  this.clear = function() {
+    plist_ = [];
+    window.localStorage.clear();
+    $("#tasks").empty();
+    this.render('<h3>Load a playlist</h3>');
+  }
+
+  this.render = function(html) {
+    if (typeof html == 'string') {
+      playlistDOM_.innerHTML = html;
+    } else {
+      var html = [];
+      plist_ = this.recall();
+      plist_.forEach(function(item) {
+        html.push('<li>', '<a href="javascript:void(0);" data-src="', item.src,
+                  '"n onclick="playlist.play(this)">', item.title, '</a>', '</li>');
+      });
+      playlistDOM_.innerHTML = '<ul>' +  html.join('') + '</ul>';
+    }
+  }
+
+  this.play = function(el) {
+    if (el) {
+      if( el.dataset.src.match("File:")){
+
+         el.dataset.src = cleaner(el.dataset.src);
+
+
+      }
+      this.audio.src = el.dataset.src;
+    }
+    if (this.audio.src) {
+      //this.audio.load();
+      this.audio.play();
+      document.body.classList.add('playing');
+    }
+  }
+
+  this.pause = function() {
+    this.audio.pause();
+    document.body.classList.remove('playing');
+  }
+
+  this.playPause = function() {
+    if (this.audio.paused) {
+      this.play();
+    } else {
+      this.pause();
+    }
+  };
+}
+
+var playlist = new PlayList('#playlist', '#player');
+
+window.addEventListener('keydown', function(e) {
+  switch (e.keyCode) {
+    case 32: // space
+      e.stopPropagation();
+      e.preventDefault();
+      playlist.playPause();
+      break;
+    case 38: // up
+    case 187: // +
+      e.stopPropagation();
+      e.preventDefault();
+      playlist.audio.volume = Math.min(playlist.audio.volume + 0.1, 1);
+      break;
+    case 40: // down
+    case 189: // -
+      e.stopPropagation();
+      e.preventDefault();
+      playlist.audio.volume = Math.max(playlist.audio.volume - 0.1, 0);
+      break;
+     case 77: // m
+      playlist.audio.volume = playlist.audio.volume > 0 ? 0 : 1;
+      break;
+    default:
+      break;
+  };
+}, false);
+
+document.querySelector('#myfile').addEventListener('change', function(e) {
+  var playListFile = this.files[0];
+
+  if (!playListFile.name.match(/\.pls$/)) {
+    alert('Please select a .pls file');
+    return;
+  }
+
+  var reader = new FileReader();
+
+  reader.onload = function(e) {
+    playlist.save(playlist.parse(e.target.result));
+    playlist.render();
+  };
+
+  reader.readAsText(playListFile);
+}, false);
+
+if (playlist.recall().length) {
+  playlist.render();
+} else {
+  playlist.render('<h3>Load a playlist</h3>');
+}
+</script>
+
+
+
+</body>
+</html>
+

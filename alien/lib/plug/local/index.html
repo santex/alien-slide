@@ -1,0 +1,58 @@
+<h2>latest local search <b>bion</b></h2>
+  <script>
+
+
+function ucfirst(incomming){ return incomming.charAt(0).toUpperCase() + incomming.substring(1);}
+
+function goTo(thisid,type,additional){
+ var ident = "";
+ switch (type) {
+ case -1:
+ ident = additional+"#"+$(thisid).html();
+ break;
+ case 0:
+ ident = "Category:"+$(thisid).html();
+ break;
+ case 1:
+ ident = "List_of_"+$(thisid).html();
+ break;
+ case 2:
+ ident = ""+$(thisid).html();
+ break;
+ }
+ if(!ident.match("http://")){
+ ident = "http://en.wikipedia.org/wiki/"+ucfirst(ident.replace(/ /g,"_"));
+ }
+ window.open(
+ ident.toString(),
+ '_blank'
+);
+}
+
+
+  </script>
+<pre><div style='color:green;zoom:80%;'>
+(1)
+..................................................
+<li onClick=goTo(this,'B520_N365','Bionik-Das_Genie_der_Natur.mkv'); >Bionik-Das_Genie_der_Natur.mkv</li>
+(1)
+.....................................................................................
+<li onClick=goTo(this,'B520_N360_B252','Bionik-Das_Genie_der_Natur-Teil_1-Die_Magie_der_Bewegung.mkv'); >Bionik-Das_Genie_der_Natur-Teil_1-Die_Magie_der_Bewegung.mkv</li>
+(1)
+.....................................
+<li onClick=goTo(this,'M260_R435_B525','Bionics'); >Bionics.json</li>
+(1)
+..........................................
+<li onClick=goTo(this,'M260_R435_E532','Endosymbiont'); >Endosymbiont.json</li>
+(1)
+........................................
+<li onClick=goTo(this,'M260_R435_P631','Protobiont'); >Protobiont.json</li>
+(1)
+.......................................
+<li onClick=goTo(this,'M260_R435_S515','symbionts'); >symbionts.json</li>
+(1)
+......................................................
+<li onClick=goTo(this,'M260_R435_B520_A623','Bionic_architecture'); >Bionic_architecture.json</li>
+(1)
+...................................................................................................
+<li onClick=goTo(this,'B520_N360_E562_I230_S242','Bionik-Das_Genie_der_Natur-Teil_3-Energie_ist_der_Schluessel.mkv'); >Bionik-Das_Genie_der_Natur-Teil_3-Energie_ist_der_Schluessel.mkv</li></div></pre>
